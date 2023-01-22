@@ -7,10 +7,8 @@
 import marlin
 board = marlin.env.BoardConfig()
 
-address = board.get("build.address", "")
-if address:
+if address := board.get("build.address", ""):
 	marlin.relocate_firmware(address)
 
-ldscript = board.get("build.ldscript", "")
-if ldscript:
+if ldscript := board.get("build.ldscript", ""):
 	marlin.custom_ld_script(ldscript)

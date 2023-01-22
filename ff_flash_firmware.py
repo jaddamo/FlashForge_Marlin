@@ -77,7 +77,7 @@ print(to_string(ret.tobytes()))
 
 print('Writing firmware...')
 # start fw write
-fw_write_str = "~M28 {} 0:/sys/{}\r\n".format(firmware_size, TARGET_FIRMWARE_NAME)
+fw_write_str = f"~M28 {firmware_size} 0:/sys/{TARGET_FIRMWARE_NAME}\r\n"
 printer.write(CONTROL_ENDPOINT_ADDR, fw_write_str)
 ret = printer.read(BULK_IN_ENDPOINT_ADDR, 1000)
 print(to_string(ret.tobytes()))
@@ -89,7 +89,7 @@ printer.write(BULK_OUT_ENDPOINT_ADDR, fw.read(),
               5000)  # seems like i was getting timeouts below about 1500ms
 
 # finish fw write
-fw_write_str = "~M29 {}\r\n".format(firmware_checksum)
+fw_write_str = f"~M29 {firmware_checksum}\r\n"
 printer.write(CONTROL_ENDPOINT_ADDR, fw_write_str)
 ret = printer.read(BULK_IN_ENDPOINT_ADDR, 1000)
 print(to_string(ret.tobytes()))

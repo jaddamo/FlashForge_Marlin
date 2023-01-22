@@ -23,11 +23,14 @@ mf = env["MARLIN_FEATURES"]
 
 # Get a build flag's value or None
 def getBuildFlagValue(name):
-	for flag in build_flags:
-		if isinstance(flag, list) and flag[0] == name:
-			return flag[1]
-
-	return None
+	return next(
+		(
+			flag[1]
+			for flag in build_flags
+			if isinstance(flag, list) and flag[0] == name
+		),
+		None,
+	)
 
 # Get an overriding buffer size for RX or TX from the build flags
 def getInternalSize(side):
@@ -39,7 +42,7 @@ def getInternalSize(side):
 def getBufferSize(side, default):
 	# Get a build flag value or fall back to the given default
 	internal = int(getInternalSize(side) or default)
-	flag = side + "_BUFFER_SIZE"
+	flag = f"{side}_BUFFER_SIZE"
 	# Return the largest value
 	return max(int(mf[flag]), internal) if flag in mf else internal
 
