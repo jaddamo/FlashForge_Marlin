@@ -34,7 +34,7 @@ if sys.platform == 'darwin':
 
   if os.path.exists(xcode_path):
 
-    env['BUILD_FLAGS'] += [ "-F" + xcode_path ]
+    env['BUILD_FLAGS'] += [f"-F{xcode_path}"]
     print("Using OpenGL framework headers from Xcode.app")
 
   elif os.path.exists(mesa_path):

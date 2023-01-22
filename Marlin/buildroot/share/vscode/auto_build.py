@@ -76,7 +76,7 @@ import sys,os
 
 pwd = os.getcwd()  # make sure we're executing from the correct directory level
 pwd = pwd.replace('\\', '/')
-if 0 <= pwd.find('buildroot/share/vscode'):
+if pwd.find('buildroot/share/vscode') >= 0:
   pwd = pwd[:pwd.find('buildroot/share/vscode')]
   os.chdir(pwd)
 print('pwd: ', pwd)
@@ -94,7 +94,9 @@ print('\nWorking\n')
 
 python_ver = sys.version_info[0]  # major version - 2 or 3
 
-print("python version " + str(sys.version_info[0]) + "." + str(sys.version_info[1]) + "." + str(sys.version_info[2]))
+print(
+    f"python version {str(sys.version_info[0])}.{str(sys.version_info[1])}.{str(sys.version_info[2])}"
+)
 
 import platform
 current_OS = platform.system()
@@ -215,9 +217,9 @@ def resolve_path(path):
 
   # turn the selection into a partial path
 
-  if 0 <= path.find('"'):
+  if path.find('"') >= 0:
     path = path[path.find('"'):]
-    if 0 <= path.find(', line '):
+    if path.find(', line ') >= 0:
       path = path.replace(', line ', ':')
     path = path.replace('"', '')
 
@@ -231,7 +233,7 @@ def resolve_path(path):
   column_end = path.find(':', column_start + 1)
   if column_end == -1:
     column_end = len(path)
-  if 0 <= line_start:
+  if line_start >= 0:
     line_num = path[line_start + 1:column_start]
     if line_num == '':
       line_num = 1
@@ -241,28 +243,28 @@ def resolve_path(path):
       column_num = 0
 
   index_end = path.find(',')
-  if 0 <= index_end:
+  if index_end >= 0:
     path = path[:index_end]  # delete comma and anything after
   index_end = path.find(':', 2)
-  if 0 <= index_end:
+  if index_end >= 0:
     path = path[:path.find(':', 2)]  # delete the line number and anything after
 
   path = path.replace('\\', '/')
 
-  if 1 == path.find(':') and current_OS == 'Windows':
+  if path.find(':') == 1 and current_OS == 'Windows':
     return path, line_num, column_num  # found a full path - no need for further processing
-  elif 0 == path.find('/') and (current_OS == 'Linux' or current_OS == 'Darwin'):
+  elif path.find('/') == 0 and current_OS in ['Linux', 'Darwin']:
     return path, line_num, column_num  # found a full path - no need for further processing
 
   else:
 
     # resolve as many '../' as we can
-    while 0 <= path.find('../'):
+    while path.find('../') >= 0:
       end = path.find('../') - 1
       start = path.find('/')
-      while 0 <= path.find('/', start) and end > path.find('/', start):
+      while path.find('/', start) >= 0 and end > path.find('/', start):
         start = path.find('/', start) + 1
-      path = path[0:start] + path[end + 4:]
+      path = path[:start] + path[end + 4:]
 
   # this is an alternative to the above - it just deletes the '../' section
   # start_temp = path.find('../')
@@ -274,15 +276,11 @@ def resolve_path(path):
 
     start = path.find('/')
     if start != 0:  # make sure path starts with '/'
-      while 0 == path.find(' '):  # eat any spaces at the beginning
+      while path.find(' ') == 0:  # eat any spaces at the beginning
         path = path[1:]
-      path = '/' + path
+      path = f'/{path}'
 
-    if current_OS == 'Windows':
-      search_path = path.replace('/', '\\')  # os.walk uses '\' in Windows
-    else:
-      search_path = path
-
+    search_path = path.replace('/', '\\') if current_OS == 'Windows' else path
     start_path = os.path.abspath('')
 
     # search project directory for the selection
@@ -290,10 +288,10 @@ def resolve_path(path):
     full_path = ''
     for root, directories, filenames in os.walk(start_path):
       for filename in filenames:
-        if 0 <= root.find('.git'):  # don't bother looking in this directory
+        if root.find('.git') >= 0:  # don't bother looking in this directory
           break
         full_path = os.path.join(root, filename)
-        if 0 <= full_path.find(search_path):
+        if full_path.find(search_path) >= 0:
           found = True
           break
       if found:
@@ -328,25 +326,25 @@ def open_file(path):
     editor_sublime = subprocess.check_output('wmic process where "name=' + "'sublime_text.exe'" + '" get ExecutablePath')
     editor_atom = subprocess.check_output('wmic process where "name=' + "'atom.exe'" + '" get ExecutablePath')
 
-    if 0 <= editor_note.find('notepad++.exe'):
+    if editor_note.find('notepad++.exe') >= 0:
       start = editor_note.find('\n') + 1
       end = editor_note.find('\n', start + 5) - 4
       editor_note = editor_note[start:end]
-      command = file_path, ' -n' + str(line_num), ' -c' + str(column_num)
+      command = file_path, f' -n{str(line_num)}', f' -c{str(column_num)}'
       subprocess.Popen([editor_note, command])
 
-    elif 0 <= editor_sublime.find('sublime_text.exe'):
+    elif editor_sublime.find('sublime_text.exe') >= 0:
       start = editor_sublime.find('\n') + 1
       end = editor_sublime.find('\n', start + 5) - 4
       editor_sublime = editor_sublime[start:end]
-      command = file_path + ':' + line_num + ':' + column_num
+      command = f'{file_path}:{line_num}:{column_num}'
       subprocess.Popen([editor_sublime, command])
 
-    elif 0 <= editor_atom.find('atom.exe'):
+    elif editor_atom.find('atom.exe') >= 0:
       start = editor_atom.find('\n') + 1
       end = editor_atom.find('\n', start + 5) - 4
       editor_atom = editor_atom[start:end]
-      command = file_path + ':' + str(line_num) + ':' + str(column_num)
+      command = f'{file_path}:{str(line_num)}:{str(column_num)}'
       subprocess.Popen([editor_atom, command])
 
     else:
@@ -354,9 +352,9 @@ def open_file(path):
 
   elif current_OS == 'Linux':
 
-    command = file_path + ':' + str(line_num) + ':' + str(column_num)
+    command = f'{file_path}:{str(line_num)}:{str(column_num)}'
     index_end = command.find(',')
-    if 0 <= index_end:
+    if index_end >= 0:
       command = command[:index_end]  # sometimes a comma magically appears, don't want it
     running_apps = subprocess.Popen('ps ax -o cmd', stdout=subprocess.PIPE, shell=True)
     (output, err) = running_apps.communicate()
@@ -364,7 +362,7 @@ def open_file(path):
 
     def find_editor_linux(name, search_obj):
       for line in search_obj:
-        if 0 <= line.find(name):
+        if line.find(name) >= 0:
           path = line
           return True, path
       return False, ''
@@ -379,13 +377,13 @@ def open_file(path):
       subprocess.Popen([editor_path_atom, command])
 
     else:
-      os.system('xdg-open ' + file_path)
+      os.system(f'xdg-open {file_path}')
 
-  elif current_OS == 'Darwin':  # MAC
+  elif current_OS == 'Darwin':# MAC
 
-    command = file_path + ':' + str(line_num) + ':' + str(column_num)
+    command = f'{file_path}:{str(line_num)}:{str(column_num)}'
     index_end = command.find(',')
-    if 0 <= index_end:
+    if index_end >= 0:
       command = command[:index_end]  # sometimes a comma magically appears, don't want it
     running_apps = subprocess.Popen('ps axwww -o command', stdout=subprocess.PIPE, shell=True)
     (output, err) = running_apps.communicate()
@@ -393,9 +391,9 @@ def open_file(path):
 
     def find_editor_mac(name, search_obj):
       for line in search_obj:
-        if 0 <= line.find(name):
+        if line.find(name) >= 0:
           path = line
-          if 0 <= path.find('-psn'):
+          if path.find('-psn') >= 0:
             path = path[:path.find('-psn') - 1]
           return True, path
       return False, ''
@@ -410,7 +408,7 @@ def open_file(path):
       subprocess.Popen([editor_path_atom, command])
 
     else:
-      os.system('open ' + file_path)
+      os.system(f'open {file_path}')
 
 # end - open_file
 
@@ -423,13 +421,13 @@ def get_build_last():
     date_last = 0.0
     DIR__pioenvs = os.listdir('.pio')
     for name in DIR__pioenvs:
-      if 0 <= name.find('.') or 0 <= name.find('-'):  # skip files in listing
+      if name.find('.') >= 0 or name.find('-') >= 0:  # skip files in listing
         continue
-      DIR_temp = os.listdir('.pio/build/' + name)
+      DIR_temp = os.listdir(f'.pio/build/{name}')
       for names_temp in DIR_temp:
 
-        if 0 == names_temp.find('firmware.'):
-          date_temp = os.path.getmtime('.pio/build/' + name + '/' + names_temp)
+        if names_temp.find('firmware.') == 0:
+          date_temp = os.path.getmtime(f'.pio/build/{name}/{names_temp}')
           if date_temp > date_last:
             date_last = date_temp
             env_last = name
@@ -448,9 +446,9 @@ def get_board_name():
   Configuration_h = Configuration_h.split('\n')
   Marlin_ver = 0  # set version to invalid number
   for lines in Configuration_h:
-    if 0 == lines.find('#define CONFIGURATION_H_VERSION 01'):
+    if lines.find('#define CONFIGURATION_H_VERSION 01') == 0:
       Marlin_ver = 1
-    if 0 == lines.find('#define CONFIGURATION_H_VERSION 02'):
+    if lines.find('#define CONFIGURATION_H_VERSION 02') == 0:
       Marlin_ver = 2
     board = lines.find(' BOARD_') + 1
     motherboard = lines.find(' MOTHERBOARD ') + 1
@@ -459,12 +457,9 @@ def get_board_name():
     if (comment == -1 or comment > board) and \
       board > motherboard and \
       motherboard > define and \
-      define >= 0 :
+      define >= 0:
       spaces = lines.find(' ', board)  # find the end of the board substring
-      if spaces == -1:
-        board_name = lines[board:]
-      else:
-        board_name = lines[board:spaces]
+      board_name = lines[board:] if spaces == -1 else lines[board:spaces]
       break
 
   return board_name, Marlin_ver
@@ -476,9 +471,9 @@ def get_env_from_line(line, start_position):
   env = ''
   next_position = -1
   env_position = line.find('env:', start_position)
-  if 0 < env_position:
+  if env_position > 0:
     next_position = line.find(' ', env_position + 4)
-    if 0 < next_position:
+    if next_position > 0:
       env = line[env_position + 4:next_position]
     else:
       env = line[env_position + 4:]  # at the end of the line
@@ -491,7 +486,7 @@ def get_starting_env(board_name_full, version):
 
   if version == 1:
     path = 'Marlin/pins.h'
-  if version == 2:
+  elif version == 2:
     path = 'Marlin/src/pins/pins.h'
   with open(path, 'r') as myfile:
     pins_h = myfile.read()
@@ -510,9 +505,9 @@ def get_starting_env(board_name_full, version):
   list_start_found = False
   for lines in pins_h:
     i = i + 1  # i is always one ahead of the index into pins_h
-    if 0 < lines.find("Unknown MOTHERBOARD value set in Configuration.h"):
+    if lines.find("Unknown MOTHERBOARD value set in Configuration.h") > 0:
       break  #  no more
-    if 0 < lines.find('1280'):
+    if lines.find('1280') > 0:
       list_start_found = True
     if list_start_found == False:  # skip lines until find start of CPU list
       continue
@@ -536,7 +531,7 @@ def get_CPU_name(environment):
   CPU_list = ('1280', '2560', '644', '1284', 'LPC1768', 'DUE')
   CPU_name = ''
   for CPU in CPU_list:
-    if 0 < environment.find(CPU):
+    if environment.find(CPU) > 0:
       return CPU
 
 
@@ -556,14 +551,11 @@ def get_env(board_name, ver_Marlin):
 
   CPU_question = (('1280', '2560', '1280 or 2560 CPU?'), ('644', '1284', '644 or 1284 CPU?'))
 
-  if 0 < board_name.find('MELZI'):
+  if board_name.find('MELZI') > 0:
     get_answer(
       board_name, " Which flavor of Melzi? ", "Melzi (Optiboot bootloader)", "Melzi                                      "
     )
-    if 1 == get_answer_val:
-      target_env = 'melzi_optiboot'
-    else:
-      target_env = 'melzi'
+    target_env = 'melzi_optiboot' if get_answer_val == 1 else 'melzi'
   else:
     env_A, env_B, env_C = get_starting_env(board_name, ver_Marlin)
 
@@ -578,10 +570,7 @@ def get_env(board_name, ver_Marlin):
     for item in CPU_question:
       if CPU_A == item[0]:
         get_answer(board_name, item[2], item[0], item[1])
-        if 2 == get_answer_val:
-          target_env = env_B
-        else:
-          target_env = env_A
+        target_env = env_B if get_answer_val == 2 else env_A
         return target_env
 
     if env_A == 'LPC1768':
@@ -595,22 +584,19 @@ def get_env(board_name, ver_Marlin):
         target_env = 'DUE_debug'
       elif env_B == 'DUE_USB':
         get_answer(board_name, 'DUE Download Port?', '(Native) USB port', 'Programming port')
-        if 1 == get_answer_val:
-          target_env = 'DUE_USB'
-        else:
-          target_env = 'DUE'
-    elif env_A == 'STM32F103RC_btt' or env_A == 'STM32F103RE_btt':
+        target_env = 'DUE_USB' if get_answer_val == 1 else 'DUE'
+    elif env_A in ['STM32F103RC_btt', 'STM32F103RE_btt']:
       if env_A == 'STM32F103RE_btt':
         get_answer(board_name, 'MCU Type?', 'STM32F103RC', 'STM32F103RE')
-        if 1 == get_answer_val:
+        if get_answer_val == 1:
           env_A = 'STM32F103RC_btt'
       target_env = env_A
       if env_A == 'STM32F103RC_btt':
         get_answer(board_name, 'RCT6 Flash Size?', '512K', '256K')
-        if 1 == get_answer_val:
+        if get_answer_val == 1:
           target_env += '_512K'
       get_answer(board_name, 'USB Support?', 'USB', 'No USB')
-      if 1 == get_answer_val:
+      if get_answer_val == 1:
         target_env += '_USB'
     else:
       invalid_board()
@@ -678,7 +664,7 @@ def line_print(line_input):
     ['[FAILED]', 1, 'error'], ['[SUCCESS]', 1, 'highlight_green']
   ]
 
-  def write_to_screen_with_replace(text, highlights):  # search for highlights & split line accordingly
+  def write_to_screen_with_replace(text, highlights):# search for highlights & split line accordingly
     did_something = False
     for highlight in highlights:
       found = text.find(highlight[0])
@@ -686,7 +672,7 @@ def line_print(line_input):
         break
       if found >= 0:
         did_something = True
-        if 0 == highlight[1]:
+        if highlight[1] == 0:
           found_1 = text.find(' ')
           found_tab = text.find('\t')
           if found_1 < 0 or found_1 > found_tab:
@@ -708,7 +694,7 @@ def line_print(line_input):
               write_to_screen_queue(text[found_right:] + '\n')
               break
           break
-        if 1 == highlight[1]:
+        if highlight[1] == 1:
           found_right = text.find(']', found + 1)
           write_to_screen_queue(text[:found + 1])
           write_to_screen_queue(text[found + 1:found_right], highlight[2])
@@ -729,12 +715,11 @@ def line_print(line_input):
 # scan the line
   line_counter = line_counter + 1
   max_search = len(line_input)
-  if max_search > 3:
-    max_search = 3
+  max_search = min(max_search, 3)
   beginning = line_input[:max_search]
 
   # set flags
-  if 0 < line_input.find(': warning: '):  # start of warning block
+  if line_input.find(': warning: ') > 0:  # start of warning block
     warning = True
     warning_FROM = False
     error = False
@@ -742,30 +727,22 @@ def line_print(line_input):
     prev_line_COM = False
     prev_line_COM = False
     warning_continue = True
-  if 0 < line_input.find('Thank you') or 0 < line_input.find('SUMMARY'):
+  if line_input.find('Thank you') > 0 or line_input.find('SUMMARY') > 0:
     warning = False  #standard line found
     warning_FROM = False
     error = False
     standard = True
     prev_line_COM = False
     warning_continue = False
-  elif beginning == 'War' or \
-    beginning == '#er' or \
-    beginning == 'In ' or \
-    (beginning != 'Com' and prev_line_COM == True and not(beginning == 'Arc' or beginning == 'Lin'  or beginning == 'Ind') or \
-    next_line_warning == True):
+  elif (beginning == 'War' or beginning == '#er' or beginning == 'In '
+        or beginning != 'Com' and prev_line_COM == True
+        and beginning not in ['Arc', 'Lin', 'Ind'] or next_line_warning == True):
     warning = True  #warning found
     warning_FROM = False
     error = False
     standard = False
     prev_line_COM = False
-  elif beginning == 'Com' or \
-    beginning == 'Ver' or \
-    beginning == ' [E' or \
-    beginning == 'Rem' or \
-    beginning == 'Bui' or \
-    beginning == 'Ind' or \
-    beginning == 'PLA':
+  elif beginning in ['Com', 'Ver', ' [E', 'Rem', 'Bui', 'Ind', 'PLA']:
     warning = False  #standard line found
     warning_FROM = False
     error = False
@@ -778,8 +755,7 @@ def line_print(line_input):
     error = True
     standard = False
     prev_line_COM = False
-  elif 0 < line_input.find(': error:') or \
-    0 < line_input.find(': fatal error:'):       # start of warning /error block
+  elif line_input.find(': error:') > 0 or line_input.find(': fatal error:') > 0:       # start of warning /error block
     warning = False  # error found
     warning_FROM = False
     error = True
@@ -855,21 +831,22 @@ def sys_PIO():
 
   if build_type == 'build':
     # pio_result = os.system("echo -en '\033c'")
-    pio_result = os.system('platformio run -e ' + target_env)
+    pio_result = os.system(f'platformio run -e {target_env}')
   elif build_type == 'clean':
-    pio_result = os.system('platformio run --target clean -e ' + target_env)
+    pio_result = os.system(f'platformio run --target clean -e {target_env}')
   elif build_type == 'upload':
-    pio_result = os.system('platformio run --target upload -e ' + target_env)
+    pio_result = os.system(f'platformio run --target upload -e {target_env}')
   elif build_type == 'traceback':
-    pio_result = os.system('platformio run --target upload -e ' + target_env)
+    pio_result = os.system(f'platformio run --target upload -e {target_env}')
   elif build_type == 'program':
-    pio_result = os.system('platformio run --target program -e ' + target_env)
+    pio_result = os.system(f'platformio run --target program -e {target_env}')
   elif build_type == 'test':
-    pio_result = os.system('platformio test upload -e ' + target_env)
+    pio_result = os.system(f'platformio test upload -e {target_env}')
   elif build_type == 'remote':
-    pio_result = os.system('platformio remote run --target program -e ' + target_env)
+    pio_result = os.system(
+        f'platformio remote run --target program -e {target_env}')
   elif build_type == 'debug':
-    pio_result = os.system('platformio debug -e ' + target_env)
+    pio_result = os.system(f'platformio debug -e {target_env}')
   else:
     print('ERROR - unknown build type:  ', build_type)
     raise SystemExit(0)  # kill everything
@@ -972,8 +949,8 @@ def run_PIO(dummy):
 
 # append info used to run PlatformIO
   write_to_screen_queue('\nBoard name: ' + board_name + '\n')  # put build info at the bottom of the screen
-  write_to_screen_queue('Build type: ' + build_type + '\n')
-  write_to_screen_queue('Environment used: ' + target_env + '\n')
+  write_to_screen_queue(f'Build type: {build_type}' + '\n')
+  write_to_screen_queue(f'Environment used: {target_env}' + '\n')
   write_to_screen_queue(str(datetime.now()) + '\n')
 
 # end - run_PIO
@@ -1129,37 +1106,36 @@ class output_window(Text):
   def _scroll_errors(self):
     global search_position
     global error_found
-    if search_position == '':  # first time so highlight all errors
+    if search_position == '':# first time so highlight all errors
       countVar = tk.IntVar()
       search_position = '1.0'
       search_count = 0
       while search_position != '' and search_count < 100:
         search_position = self.search("error", search_position, stopindex="end", count=countVar, nocase=1)
-        search_count = search_count + 1
-        if search_position != '':
-          error_found = True
-          end_pos = '{}+{}c'.format(search_position, 5)
-          self.tag_add("error_highlight_inactive", search_position, end_pos)
-          search_position = '{}+{}c'.format(search_position, 1)  # point to the next character for new search
-        else:
+        search_count += 1
+        if search_position == '':
           break
 
+        error_found = True
+        end_pos = f'{search_position}+5c'
+        self.tag_add("error_highlight_inactive", search_position, end_pos)
+        search_position = f'{search_position}+1c'
     if error_found:
       if search_position == '':
         search_position = self.search("error", '1.0', stopindex="end", nocase=1)  # new search
       else:  # remove active highlight
-        end_pos = '{}+{}c'.format(search_position, 5)
-        start_pos = '{}+{}c'.format(search_position, -1)
+        end_pos = f'{search_position}+5c'
+        start_pos = f'{search_position}+-1c'
         self.tag_remove("error_highlight_active", start_pos, end_pos)
       search_position = self.search(
         "error", search_position, stopindex="end", nocase=1
       )  # finds first occurrence AGAIN on the first time through
       if search_position == "":  # wrap around
         search_position = self.search("error", '1.0', stopindex="end", nocase=1)
-      end_pos = '{}+{}c'.format(search_position, 5)
+      end_pos = f'{search_position}+5c'
       self.tag_add("error_highlight_active", search_position, end_pos)  # add active highlight
       self.see(search_position)
-      search_position = '{}+{}c'.format(search_position, 1)  # point to the next character for new search
+      search_position = f'{search_position}+1c'
 
   def scroll_errors(self, event):
     self._scroll_errors()
@@ -1185,18 +1161,17 @@ class output_window(Text):
     path = self.get("path_start", "path_end")
     from_loc = path.find('from ')
     colon_loc = path.find(': ')
-    if 0 <= from_loc and ((colon_loc == -1) or (from_loc < colon_loc)):
+    if from_loc >= 0 and ((colon_loc == -1) or (from_loc < colon_loc)):
       path = path[from_loc + 5:]
-    if 0 <= colon_loc:
+    if colon_loc >= 0:
       path = path[:colon_loc]
-    if 0 <= path.find('\\') or 0 <= path.find('/'):  # make sure it really contains a path
+    if path.find('\\') >= 0 or path.find('/') >= 0:  # make sure it really contains a path
       open_file(path)
 
   def _file_save_as(self):
     self.filename = fileDialog.asksaveasfilename(defaultextension='.txt')
-    f = open(self.filename, 'w')
-    f.write(self.get('1.0', 'end'))
-    f.close()
+    with open(self.filename, 'w') as f:
+      f.write(self.get('1.0', 'end'))
 
   def copy(self, event):
     try:

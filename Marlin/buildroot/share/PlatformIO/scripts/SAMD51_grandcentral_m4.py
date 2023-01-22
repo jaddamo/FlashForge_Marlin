@@ -15,5 +15,5 @@ txBuf = mf["TX_BUFFER_SIZE"] if "TX_BUFFER_SIZE" in mf else "0"
 serialBuf = str(max(int(rxBuf), int(txBuf), 350))
 
 build_flags = env.get('BUILD_FLAGS')
-build_flags.append("-DSERIAL_BUFFER_SIZE=" + serialBuf)
+build_flags.append(f"-DSERIAL_BUFFER_SIZE={serialBuf}")
 env.Replace(BUILD_FLAGS=build_flags)

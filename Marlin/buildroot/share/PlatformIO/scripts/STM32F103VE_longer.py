@@ -7,7 +7,7 @@ import os,marlin
 # Rename ${PROGNAME}.bin and save it as 'project.bin' (No encryption on the Longer3D)
 def encrypt(source, target, env):
     firmware = open(target[0].path, "rb")
-    renamed = open(target[0].dir.path + '/project.bin', "wb")
+    renamed = open(f'{target[0].dir.path}/project.bin', "wb")
     length = os.path.getsize(target[0].path)
     position = 0
     try:
